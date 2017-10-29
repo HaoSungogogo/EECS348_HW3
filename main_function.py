@@ -92,19 +92,121 @@ def infer(inferred_fact, inferred_rule):
 def Ask(object):
     res = []
     if type(object) == fact:
-        if object in KB.facts:
-            return True
-        else:
-            for oneRule in KB.rules:
-                bindings = binding.match(object.statement, oneRule.LHS[0])
-                if bindings != False:
-                    res.append(bindings.pretty)
+        for fact_iter in KB.facts:
+            if fact_iter.statement == object.statement:
+                return True
+        for oneRule in KB.rules:
+            binding_check = binding.match(object.statement, oneRule.LHS[0], binding.bindings())
+            if binding_check != False:
+                if binding_check.pretty not in res:
+                    res.append(binding_check.pretty)
+
     if type(object) == rule:
         for oneFact in KB.facts:
-            bindings = binding.match(oneFact.statement, object.LHS[0])
-            if bindings != False:
-                res.append(bindings.pretty)
+            binding_check = binding.match(oneFact.statement, object.LHS[0], binding.bindings())
+            if binding_check != False:
+                if binding_check.pretty not in res:
+                    res.append(binding_check.pretty)
     return res
+
+def Why(statement):
+    for iter in KB.facts:
+        if iter.statement == statement:
+            level = []
+            level.append(iter)
+            while len(level) != 0:
+                size = len(level)
+                strs = ""
+                for i in range(size):
+                    cur = level.pop(0)
+                    if len(cur.supported_by) != 0:
+                        if type(cur) == fact:
+                            strs += " " + str(cur.statement) + "is supported_by"
+                        if type(cur) == rule:
+                            strs += " " + str(cur.LHS) + "=>" + str(cur.RHS) + "is supported_by"
+                    for element in cur.supported_by:
+                        if type(element) == fact:
+                            strs += " fact is: " + str(element.statement) + ","
+                        else:
+                            strs += " rule is: " + str(element.LHS) + "=>" + str(element.RHS)
+                        level.append(element)
+                print strs
+
+#To Do
+def Retract(statement):
+    for iter in KB.facts:
+        if iter.statement == statement:
+            level = []
+            level.append(iter)
+            while len(level) != 0:
+                size = len(level)
+                for i in range(size):
+                    cur = level.pop(0)
+                    if len(cur.supported_by) != 0:
+                        if type(cur) == fact:
+                            KB.facts.remove(cur)
+                        if type(cur) == rule:
+                            KB.rules.remove(cur)
+                    for element in cur.supported_by:
+                        level.append(element)
+
+
+def Ask_plus(list_of_statement):
+    list = []
+    for statement in list_of_statement:
+        binding_list = Ask(statement)
+        if binding_list == True:
+            continue
+        else:
+            if len(list) == 0:
+                for iter in binding_list:
+                    list.append(iter)
+            else:
+                for iter in binding_list:
+                    flag = check(list, iter)
+                    if flag == False:
+                        return False
+                    else:
+                        list.append(iter)
+    return list
+
+
+
+
+def check(list, iter):
+    for ele in list:
+        if len(ele) == len(iter):
+            set1 = {}
+            set2 = {}
+            for i in ele:
+                set1[i[0]] = [i[1]]
+            for i  in iter:
+                set2[i[0]] = [i[1]]
+            for i in set1:
+                if i not in set2:
+                    return True
+            for i in set2:
+                if i not in set1:
+                    return True
+            for i in set1:
+                if set1[i] != set2[i]:
+                    return False
+            return True
+    return True
+
+
+
+
+
+        # if len(ele) != len(iter):
+        #     continue;
+        # count = 0
+        # for i in range(len(ele)):
+        #     if ele[i][0] == iter[i][0]
+
+
+
+
 
 
 
@@ -128,7 +230,10 @@ if __name__ == "__main__":
     print "********facts*******"
     for i in range(len(KB.facts)):
         print KB.facts[i].statement
-    print Ask(fact(['flat', 'cube1']))
+    print Ask_plus([fact(['inst', 'cube5', 'cube']), fact(['isa', 'sphere', 'abc'])])
+    # print Ask(fact(['inst', 'cube5', 'cube']))
+    # print Ask(fact(['inst', 'cube6', 'cube']))
 
-
-
+    # temp = [[('?X', 'cube5'), ('?Y', 'cube')]]
+    # iter = [('?X', 'cube4'), ('?Y', 'cube'), ('?Z', 'flat')]
+    # print check(temp, iter)
